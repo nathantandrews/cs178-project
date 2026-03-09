@@ -4,5 +4,4 @@ python -m venv .venv
 
 . .venv/bin/activate
 
-pip install ucimlrepo
-
+pip install -r requirements.txt
