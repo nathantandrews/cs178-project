@@ -4,7 +4,9 @@ Clean the Diabetes 130-US Hospitals dataset and save to diabetic_data.cleaned.cs
 
 - Loads CSV with missing values as "?" and "None".
 - Drops columns with missingness above a threshold (default 80%).
+- Drops known low-utility or administrative columns (weight, payer_code, medical_specialty).
 - Optionally drops identifier columns (encounter_id, patient_nbr).
+- Drops any remaining rows that still contain missing values.
 - Writes the cleaned DataFrame to diabetic_data.cleaned.csv in the same directory.
 """
 
@@ -62,6 +64,13 @@ def clean_diabetic_data(
     else:
         print(f"  No columns with >{missing_threshold*100:.0f}% missing.")
 
+    # Drop known low-utility / admin columns if present
+    low_value_cols = ["weight", "payer_code", "medical_specialty"]
+    existing_low_value = [c for c in low_value_cols if c in df.columns]
+    if existing_low_value:
+        df = df.drop(columns=existing_low_value, errors="ignore")
+        print(f"  Dropped low-utility columns: {existing_low_value}")
+
     # Optionally drop identifier columns
     id_cols = ["encounter_id", "patient_nbr"]
     if drop_id_columns:
@@ -69,6 +78,13 @@ def clean_diabetic_data(
         if existing_ids:
             df = df.drop(columns=existing_ids, errors="ignore")
             print(f"  Dropped ID columns: {existing_ids}")
+
+    # Drop any remaining rows with missing values
+    before_rows = len(df)
+    df = df.dropna(axis=0)
+    after_rows = len(df)
+    if after_rows < before_rows:
+        print(f"  Dropped {before_rows - after_rows} rows containing missing values.")
 
     print(f"  Cleaned shape: {df.shape}")
     print(f"  Remaining missing (top 5):\n{df.isna().sum().sort_values(ascending=False).head(5)}")
@@ -80,8 +96,8 @@ def clean_diabetic_data(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Clean Diabetes 130-US Hospitals data and write diabetic_data.cleaned.csv"
+    parser = argparse.x(
+        description="Clean Diabetes 130-US Hospitals data and write diabetic_data_cleaned-v2.csv"
     )
     parser.add_argument(
         "input",
@@ -97,7 +113,7 @@ def main():
         "--output",
         type=Path,
         default=None,
-        help="Output path for cleaned CSV (default: same dir as input, diabetic_data.cleaned.csv)",
+        help="Output path for cleaned CSV (default: same dir as input, diabetic_data_cleaned-v2.csv)",
     )
     parser.add_argument(
         "-t",
